@@ -40,19 +40,28 @@ int lufs_read_entry(LuFS* fs, uint32_t index, struct FsEntry* out) {
 int lufs_read_file_data(LuFS* fs, const struct FsEntry* entry, void* buffer) {
 	if (!fs || !entry || !entry->isfile || entry->size == 0) return -1;
 
-	uint8_t* buf = buffer;
+	uint8_t* buf = (uint8_t*)buffer;
 	uint32_t block = entry->start_block;
 	uint32_t end_block = entry->end_block;
+	uint32_t remaining = entry->size;
+	size_t buf_offset = 0;
 
-	while (block <= end_block) {
+	while (block <= end_block && remaining > 0) {
 		uint8_t temp[SECTOR_SIZE];
-		fseek(fs->fp, block * SECTOR_SIZE, fs->fp);
+		fseek(fs->fp, block * SECTOR_SIZE, SEEK_SET);
 		fread(temp, 1, SECTOR_SIZE, fs->fp);
 
-		uint16_t start = entry->start_byte;
-		uint16_t end = entry->end_byte;
+		uint16_t start = (block == entry->start_block) ? entry->start_byte : 0;
+		uint16_t end = (block == entry->end_block) ? entry->end_byte : SECTOR_SIZE - 1;
 
-		memcpy(buf, &temp[start], end - start + 1);
+		size_t chunk_size = end - start + 1;
+		if (chunk_size > remaining) chunk_size = remaining;
+
+		memcpy(buf + buf_offset, &temp[start], chunk_size);
+
+		remaining -= chunk_size;
+		buf_offset += chunk_size;
+		block++;
 	}
 
 	return 0;
