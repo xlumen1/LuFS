@@ -27,8 +27,14 @@ typedef struct {
 
 LuFS* lufs_open(const char* filename);
 void lufs_close(LuFS* fs);
+
+int lufs_new(void* buffer);
+
 int lufs_read_entry(LuFS* fs, uint32_t index, struct FsEntry* out);
 int lufs_read_file_data(LuFS* fs, const struct FsEntry* entry, void* buffer);
 int lufs_read_children(LuFS* fs, const struct FsEntry* dir, struct FsEntry* out_entries, size_t max_entries);
+
+
+
 #endif
 

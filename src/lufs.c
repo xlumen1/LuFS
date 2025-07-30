@@ -31,6 +31,17 @@ void lufs_close(LuFS* fs) {
 	}
 }
 
+int lufs_new(void* buffer) {
+	uint8_t* buf = (uint8_t*) buffer;
+	uint8_t str[6] = "LuFS\x01\x00";
+	int i = 0;
+	for (; i < SECTOR_SIZE * 2; i++) {
+		buf[i] = '\0';
+	}
+	memcpy(buf, str, 6);
+	return i + 1;
+}
+
 int lufs_read_entry(LuFS* fs, uint32_t index, struct FsEntry* out) {
 	if (!fs || index >= fs->entry_count) return -1;
 	fseek(fs->fp, SECTOR_SIZE + index * ENTRY_SIZE, SEEK_SET);
@@ -49,7 +60,9 @@ int lufs_read_file_data(LuFS* fs, const struct FsEntry* entry, void* buffer) {
 	while (block <= end_block && remaining > 0) {
 		uint8_t temp[SECTOR_SIZE];
 		fseek(fs->fp, block * SECTOR_SIZE, SEEK_SET);
-		fread(temp, 1, SECTOR_SIZE, fs->fp);
+		if (fread(temp, 1, SECTOR_SIZE, fs->fp) != SECTOR_SIZE) {
+			return -1;
+		}
 
 		uint16_t start = (block == entry->start_block) ? entry->start_byte : 0;
 		uint16_t end = (block == entry->end_block) ? entry->end_byte : SECTOR_SIZE - 1;
